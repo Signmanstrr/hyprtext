@@ -33,17 +33,8 @@ class CircularMenuButton(QToolButton):
         self.setFixedSize(40, 40)
         self.setIconSize(QSize(24, 24))
         
-        # Set the icon using our icon manager instead of system icons
-        if icon_name == "file":
-            self.setIcon(get_icon(ICON_FILE, self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon)))
-        elif icon_name == "edit":
-            self.setIcon(get_icon(ICON_EDIT, self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogContentsView)))
-        elif icon_name == "mode":
-            self.setIcon(get_icon(ICON_MODE, self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogDetailedView)))
-        elif icon_name == "theme":
-            self.setIcon(get_icon(ICON_THEME, self.style().standardIcon(self.style().StandardPixmap.SP_DesktopIcon)))
-        elif icon_name == "extension":
-            self.setIcon(get_icon(ICON_EXTENSION, self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogContentsView)))
+        # Set the icon using our icon manager
+        self._update_icon()
         
         # Apply theme-based styling
         self.updateStyle()
@@ -54,6 +45,27 @@ class CircularMenuButton(QToolButton):
         shadow.setColor(QColor(0, 0, 0, 80))
         shadow.setOffset(0, 0)
         self.setGraphicsEffect(shadow)
+    
+    def _update_icon(self, text_color=None):
+        """Set the icon based on the stored icon name property and optional text color"""
+        icon_name = self.property("icon_name")
+        if not icon_name:
+            return
+            
+        # Map icon names to icon constants and fallback system icons
+        icon_mapping = {
+            "file": (ICON_FILE, self.style().StandardPixmap.SP_FileIcon),
+            "edit": (ICON_EDIT, self.style().StandardPixmap.SP_FileDialogContentsView),
+            "mode": (ICON_MODE, self.style().StandardPixmap.SP_FileDialogDetailedView),
+            "theme": (ICON_THEME, self.style().StandardPixmap.SP_DesktopIcon),
+            "extension": (ICON_EXTENSION, self.style().StandardPixmap.SP_FileDialogContentsView)
+        }
+        
+        if icon_name in icon_mapping:
+            icon_constant, fallback_icon = icon_mapping[icon_name]
+            self.setIcon(get_icon(icon_constant, 
+                fallback=self.style().standardIcon(fallback_icon),
+                textColor=text_color))
     
     def updateStyle(self):
         """Update styling based on current theme"""
@@ -90,30 +102,8 @@ class CircularMenuButton(QToolButton):
             }}
         """)
         
-        # Colorize the icon to match text color
-        icon_name = self.property("icon_name")
-        if icon_name:
-            fallback_icon = self.icon()
-            if icon_name == "file":
-                self.setIcon(get_icon(ICON_FILE, 
-                    fallback=self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon), 
-                    textColor=text_color))
-            elif icon_name == "edit":
-                self.setIcon(get_icon(ICON_EDIT, 
-                    fallback=self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogContentsView),
-                    textColor=text_color))
-            elif icon_name == "mode":
-                self.setIcon(get_icon(ICON_MODE, 
-                    fallback=self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogDetailedView),
-                    textColor=text_color))
-            elif icon_name == "theme":
-                self.setIcon(get_icon(ICON_THEME, 
-                    fallback=self.style().standardIcon(self.style().StandardPixmap.SP_DesktopIcon),
-                    textColor=text_color))
-            elif icon_name == "extension":
-                self.setIcon(get_icon(ICON_EXTENSION, 
-                    fallback=self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogContentsView),
-                    textColor=text_color))
+        # Update icon with current text color
+        self._update_icon(text_color)
     
     def showEvent(self, event):
         """Update styling when shown"""
@@ -288,6 +278,43 @@ class HyprText(QMainWindow):
         except Exception as e:
             self._show_error("Failed to initialize UI", e)
         
+    def _create_action(self, text, callback, shortcut=None, icon_name=None, fallback_icon=None, icon_color=None, checkable=False, checked=False):
+        """Helper method to create QActions with consistent formatting
+        
+        Args:
+            text (str): The action text
+            callback (callable): Function to call when triggered
+            shortcut (str, optional): Keyboard shortcut
+            icon_name (str, optional): Name of the SVG icon to use
+            fallback_icon (StandardPixmap, optional): Fallback system icon
+            icon_color (str, optional): Color for the icon
+            checkable (bool, optional): Whether the action is checkable
+            checked (bool, optional): Whether the action is checked (if checkable)
+            
+        Returns:
+            QAction: The created action
+        """
+        action = QAction(text, self)
+        
+        # Set shortcut if provided
+        if shortcut:
+            action.setShortcut(shortcut)
+            
+        # Connect the callback
+        action.triggered.connect(callback)
+        
+        # Set the icon if provided
+        if icon_name:
+            fallback = self.style().standardIcon(fallback_icon) if fallback_icon else None
+            action.setIcon(get_icon(icon_name, fallback=fallback, textColor=icon_color))
+            
+        # Set checkable state if needed
+        if checkable:
+            action.setCheckable(True)
+            action.setChecked(checked)
+            
+        return action
+        
     def createMenus(self):
         """Create application menus (without menubar)"""
         try:
@@ -298,77 +325,56 @@ class HyprText(QMainWindow):
             # File menu
             self.file_menu = QMenu(self)
             
-            new_action = QAction('New', self)
-            new_action.setShortcut('Ctrl+N')
-            new_action.triggered.connect(self.newFile)
-            new_action.setIcon(get_icon("new", self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon), textColor=icon_color))
-            self.file_menu.addAction(new_action)
+            # Add file actions
+            file_actions = [
+                self._create_action('New', self.newFile, 'Ctrl+N', 'new', 
+                                   self.style().StandardPixmap.SP_FileIcon, icon_color),
+                self._create_action('Open', self.openFile, 'Ctrl+O', 'open', 
+                                   self.style().StandardPixmap.SP_DialogOpenButton, icon_color),
+                self._create_action('Save', self.saveFile, 'Ctrl+S', 'save', 
+                                   self.style().StandardPixmap.SP_DialogSaveButton, icon_color),
+                None,  # Separator
+                self._create_action('Exit', self.close, 'Ctrl+Q', 'exit', 
+                                   self.style().StandardPixmap.SP_DialogCloseButton, icon_color)
+            ]
             
-            open_action = QAction('Open', self)
-            open_action.setShortcut('Ctrl+O')
-            open_action.triggered.connect(self.openFile)
-            open_action.setIcon(get_icon("open", self.style().standardIcon(self.style().StandardPixmap.SP_DialogOpenButton), textColor=icon_color))
-            self.file_menu.addAction(open_action)
-            
-            save_action = QAction('Save', self)
-            save_action.setShortcut('Ctrl+S')
-            save_action.triggered.connect(self.saveFile)
-            save_action.setIcon(get_icon("save", self.style().standardIcon(self.style().StandardPixmap.SP_DialogSaveButton), textColor=icon_color))
-            self.file_menu.addAction(save_action)
-            
-            self.file_menu.addSeparator()
-            
-            exit_action = QAction('Exit', self)
-            exit_action.setShortcut('Ctrl+Q')
-            exit_action.triggered.connect(self.close)
-            exit_action.setIcon(get_icon("exit", self.style().standardIcon(self.style().StandardPixmap.SP_DialogCloseButton), textColor=icon_color))
-            self.file_menu.addAction(exit_action)
+            for action in file_actions:
+                if action is None:
+                    self.file_menu.addSeparator()
+                else:
+                    self.file_menu.addAction(action)
             
             # Edit menu
             self.edit_menu = QMenu(self)
             
-            undo_action = QAction('Undo', self)
-            undo_action.setShortcut('Ctrl+Z')
-            undo_action.triggered.connect(self.undo)
-            undo_action.setIcon(get_icon("undo", self.style().standardIcon(self.style().StandardPixmap.SP_ArrowBack), textColor=icon_color))
-            self.edit_menu.addAction(undo_action)
+            # Add edit actions
+            edit_actions = [
+                self._create_action('Undo', self.undo, 'Ctrl+Z', 'undo', 
+                                   self.style().StandardPixmap.SP_ArrowBack, icon_color),
+                self._create_action('Redo', self.redo, 'Ctrl+Y', 'redo', 
+                                   self.style().StandardPixmap.SP_ArrowForward, icon_color),
+                None,  # Separator
+                self._create_action('Cut', self.cut, 'Ctrl+X', 'cut', 
+                                   self.style().StandardPixmap.SP_DialogResetButton, icon_color),
+                self._create_action('Copy', self.copy, 'Ctrl+C', 'copy', 
+                                   self.style().StandardPixmap.SP_FileLinkIcon, icon_color),
+                self._create_action('Paste', self.paste, 'Ctrl+V', 'paste', 
+                                   self.style().StandardPixmap.SP_ArrowDown, icon_color)
+            ]
             
-            redo_action = QAction('Redo', self)
-            redo_action.setShortcut('Ctrl+Y')
-            redo_action.triggered.connect(self.redo)
-            redo_action.setIcon(get_icon("redo", self.style().standardIcon(self.style().StandardPixmap.SP_ArrowForward), textColor=icon_color))
-            self.edit_menu.addAction(redo_action)
-            
-            self.edit_menu.addSeparator()
-            
-            cut_action = QAction('Cut', self)
-            cut_action.setShortcut('Ctrl+X')
-            cut_action.triggered.connect(self.cut)
-            cut_action.setIcon(get_icon("cut", self.style().standardIcon(self.style().StandardPixmap.SP_DialogResetButton), textColor=icon_color))
-            self.edit_menu.addAction(cut_action)
-            
-            copy_action = QAction('Copy', self)
-            copy_action.setShortcut('Ctrl+C')
-            copy_action.triggered.connect(self.copy)
-            copy_action.setIcon(get_icon("copy", self.style().standardIcon(self.style().StandardPixmap.SP_FileLinkIcon), textColor=icon_color))
-            self.edit_menu.addAction(copy_action)
-            
-            paste_action = QAction('Paste', self)
-            paste_action.setShortcut('Ctrl+V')
-            paste_action.triggered.connect(self.paste)
-            paste_action.setIcon(get_icon("paste", self.style().standardIcon(self.style().StandardPixmap.SP_ArrowDown), textColor=icon_color))
-            self.edit_menu.addAction(paste_action)
+            for action in edit_actions:
+                if action is None:
+                    self.edit_menu.addSeparator()
+                else:
+                    self.edit_menu.addAction(action)
             
             # Modes menu
             self.modes_menu = QMenu(self)
             
             # Add refresh action first
-            refresh_action = QAction('Refresh Modes', self)
-            refresh_action.setShortcut('Ctrl+R')
-            refresh_action.triggered.connect(self.refreshModes)
-            refresh_action.setIcon(get_icon("refresh", self.style().standardIcon(self.style().StandardPixmap.SP_BrowserReload), textColor=icon_color))
+            refresh_action = self._create_action('Refresh Modes', self.refreshModes, 'Ctrl+R', 
+                                               'refresh', self.style().StandardPixmap.SP_BrowserReload, icon_color)
             self.modes_menu.addAction(refresh_action)
-            
             self.modes_menu.addSeparator()
             
             # Build the modes menu
@@ -377,13 +383,10 @@ class HyprText(QMainWindow):
             # Themes menu
             self.themes_menu = QMenu(self)
             
-            # Add refresh action first
-            refresh_themes_action = QAction('Refresh Themes', self)
-            refresh_themes_action.setShortcut('Ctrl+T')
-            refresh_themes_action.triggered.connect(self.refreshThemes)
-            refresh_themes_action.setIcon(get_icon("refresh", self.style().standardIcon(self.style().StandardPixmap.SP_BrowserReload), textColor=icon_color))
+            # Add refresh action for themes
+            refresh_themes_action = self._create_action('Refresh Themes', self.refreshThemes, 'Ctrl+T', 
+                                                     'refresh', self.style().StandardPixmap.SP_BrowserReload, icon_color)
             self.themes_menu.addAction(refresh_themes_action)
-            
             self.themes_menu.addSeparator()
             
             # Build the themes menu
@@ -392,13 +395,10 @@ class HyprText(QMainWindow):
             # Extensions menu
             self.extensions_menu = QMenu(self)
             
-            # Add refresh action first
-            refresh_extensions_action = QAction('Refresh Extensions', self)
-            refresh_extensions_action.setShortcut('Ctrl+E')
-            refresh_extensions_action.triggered.connect(self.refreshExtensions)
-            refresh_extensions_action.setIcon(get_icon("refresh", self.style().standardIcon(self.style().StandardPixmap.SP_BrowserReload), textColor=icon_color))
+            # Add refresh action for extensions
+            refresh_extensions_action = self._create_action('Refresh Extensions', self.refreshExtensions, 'Ctrl+E', 
+                                                         'refresh', self.style().StandardPixmap.SP_BrowserReload, icon_color)
             self.extensions_menu.addAction(refresh_extensions_action)
-            
             self.extensions_menu.addSeparator()
             
             # Build the extensions menu
@@ -407,45 +407,33 @@ class HyprText(QMainWindow):
         except Exception as e:
             self._show_error("Failed to create menus", e)
     
+    def _showMenu(self, button, menu):
+        """Generic function to show a menu under a button and reset its state when menu closes"""
+        # Position the menu below the button
+        pos = button.mapToGlobal(QPoint(0, button.height()))
+        menu.popup(pos)
+        # Connect aboutToHide signal to reset button state
+        menu.aboutToHide.connect(lambda: self.resetButtonState(button))
+    
     def showFileMenu(self):
         """Show the file menu when the file button is clicked"""
-        # Position the menu below the button (like other menus)
-        pos = self.file_button.mapToGlobal(QPoint(0, self.file_button.height()))
-        self.file_menu.popup(pos)
-        # Connect aboutToHide signal to reset button state
-        self.file_menu.aboutToHide.connect(lambda: self.resetButtonState(self.file_button))
+        self._showMenu(self.file_button, self.file_menu)
     
     def showEditMenu(self):
         """Show the edit menu when the edit button is clicked"""
-        # Position the menu below the button (like other menus)
-        pos = self.edit_button.mapToGlobal(QPoint(0, self.edit_button.height()))
-        self.edit_menu.popup(pos)
-        # Connect aboutToHide signal to reset button state
-        self.edit_menu.aboutToHide.connect(lambda: self.resetButtonState(self.edit_button))
+        self._showMenu(self.edit_button, self.edit_menu)
     
     def showModesMenu(self):
         """Show the modes menu when the modes button is clicked"""
-        # Position the menu below the button
-        pos = self.modes_button.mapToGlobal(QPoint(0, self.modes_button.height()))
-        self.modes_menu.popup(pos)
-        # Connect aboutToHide signal to reset button state
-        self.modes_menu.aboutToHide.connect(lambda: self.resetButtonState(self.modes_button))
+        self._showMenu(self.modes_button, self.modes_menu)
     
     def showThemesMenu(self):
         """Show the themes menu when the themes button is clicked"""
-        # Position the menu below the button
-        pos = self.themes_button.mapToGlobal(QPoint(0, self.themes_button.height()))
-        self.themes_menu.popup(pos)
-        # Connect aboutToHide signal to reset button state
-        self.themes_menu.aboutToHide.connect(lambda: self.resetButtonState(self.themes_button))
+        self._showMenu(self.themes_button, self.themes_menu)
     
     def showExtensionsMenu(self):
         """Show the extensions menu when the extensions button is clicked"""
-        # Position the menu below the button
-        pos = self.extensions_button.mapToGlobal(QPoint(0, self.extensions_button.height()))
-        self.extensions_menu.popup(pos)
-        # Connect aboutToHide signal to reset button state
-        self.extensions_menu.aboutToHide.connect(lambda: self.resetButtonState(self.extensions_button))
+        self._showMenu(self.extensions_button, self.extensions_menu)
     
     def buildModesMenu(self):
         """Build or rebuild the modes menu items"""
@@ -459,22 +447,27 @@ class HyprText(QMainWindow):
             self.mode_group.setExclusive(True)
             
             # Add standard mode first
-            standard_action = QAction('Standard Mode', self)
-            standard_action.setCheckable(True)
-            standard_action.setChecked(self.current_mode is None)
-            standard_action.triggered.connect(lambda: self.switchToMode(None))
+            standard_action = self._create_action(
+                'Standard Mode', 
+                lambda: self.switchToMode(None),
+                checkable=True,
+                checked=self.current_mode is None
+            )
             self.mode_group.addAction(standard_action)
             self.modes_menu.addAction(standard_action)
             
             # Add other available modes
             for mode_name in mode_manager.get_mode_names():
-                action = QAction(mode_name, self)
-                action.setCheckable(True)
-                action.setChecked(self.current_mode == mode_name)
-                action.setToolTip(mode_manager.get_mode_description(mode_name))
-                action.triggered.connect(lambda checked, name=mode_name: self.switchToMode(name))
-                self.mode_group.addAction(action)
-                self.modes_menu.addAction(action)
+                mode_desc = mode_manager.get_mode_description(mode_name)
+                mode_action = self._create_action(
+                    mode_name,
+                    lambda checked, name=mode_name: self.switchToMode(name),
+                    checkable=True,
+                    checked=self.current_mode == mode_name
+                )
+                mode_action.setToolTip(mode_desc)
+                self.mode_group.addAction(mode_action)
+                self.modes_menu.addAction(mode_action)
         except Exception as e:
             self._show_error("Failed to build modes menu", e)
     
@@ -492,13 +485,16 @@ class HyprText(QMainWindow):
             # Add available themes
             current_theme = ThemeManager.get_current_theme()
             for theme_name in ThemeManager.get_available_themes():
-                action = QAction(theme_name, self)
-                action.setCheckable(True)
-                action.setChecked(current_theme == theme_name)
-                action.setToolTip(ThemeManager.get_theme_description(theme_name))
-                action.triggered.connect(lambda checked, name=theme_name: self.switchTheme(name))
-                self.theme_group.addAction(action)
-                self.themes_menu.addAction(action)
+                theme_desc = ThemeManager.get_theme_description(theme_name)
+                theme_action = self._create_action(
+                    theme_name,
+                    lambda checked, name=theme_name: self.switchTheme(name),
+                    checkable=True,
+                    checked=current_theme == theme_name
+                )
+                theme_action.setToolTip(theme_desc)
+                self.theme_group.addAction(theme_action)
+                self.themes_menu.addAction(theme_action)
         except Exception as e:
             self._show_error("Failed to build themes menu", e)
     
@@ -510,19 +506,27 @@ class HyprText(QMainWindow):
                 self.extensions_menu.removeAction(action)
             
             # Add available extensions
-            for ext_name in extension_manager.get_available_extensions():
-                action = QAction(ext_name, self)
-                action.setCheckable(True)
-                action.setChecked(extension_manager.is_extension_active(ext_name))
-                action.setToolTip(extension_manager.get_extension_description(ext_name))
-                action.triggered.connect(lambda checked, name=ext_name: self.toggleExtension(name, checked))
-                self.extensions_menu.addAction(action)
+            for extension_name in extension_manager.get_available_extensions():
+                is_active = extension_manager.is_extension_active(extension_name)
+                extension_desc = extension_manager.get_extension_description(extension_name)
+                
+                extension_action = self._create_action(
+                    extension_name,
+                    lambda checked, name=extension_name: self.toggleExtension(name, checked),
+                    checkable=True,
+                    checked=is_active
+                )
+                extension_action.setToolTip(extension_desc)
+                self.extensions_menu.addAction(extension_action)
             
-            # If no extensions found, add a placeholder action
+            # Add separator and status entry if empty
             if len(self.extensions_menu.actions()) <= 2:  # Only refresh and separator
-                no_extensions_action = QAction('No Extensions Found', self)
-                no_extensions_action.setEnabled(False)
-                self.extensions_menu.addAction(no_extensions_action)
+                status_action = self._create_action(
+                    'No extensions found',
+                    lambda: None  # No-op callback
+                )
+                status_action.setEnabled(False)
+                self.extensions_menu.addAction(status_action)
         except Exception as e:
             self._show_error("Failed to build extensions menu", e)
     
@@ -876,12 +880,22 @@ class HyprText(QMainWindow):
     def updateUIElementsForTheme(self, colors):
         """Update UI elements to match the current theme"""
         try:
-            # Update circular menu buttons
-            self.file_button.updateStyle()
-            self.edit_button.updateStyle()
-            self.modes_button.updateStyle()
-            self.themes_button.updateStyle()
-            self.extensions_button.updateStyle()
+            # Helper function to apply updateStyle to a list of components
+            def update_style_for_components(components):
+                for component in components:
+                    component.updateStyle()
+            
+            # Helper function to apply shadow effect to a list of components
+            def apply_shadow_to_components(components):
+                for component in components:
+                    ThemeManager.apply_shadow_effect(component)
+            
+            # Update all circular menu buttons
+            menu_buttons = [
+                self.file_button, self.edit_button, self.modes_button, 
+                self.themes_button, self.extensions_button
+            ]
+            update_style_for_components(menu_buttons)
             
             # Style the file label
             text_color = colors.get("text", "#ffffff")
@@ -906,17 +920,13 @@ class HyprText(QMainWindow):
                 }}
             """)
             
-            # Apply shadow effects
-            ThemeManager.apply_shadow_effect(self.text_edit)
-            for editor in self.mode_editors.values():
-                ThemeManager.apply_shadow_effect(editor)
-                
-            ThemeManager.apply_shadow_effect(self.file_button)
-            ThemeManager.apply_shadow_effect(self.edit_button)
-            ThemeManager.apply_shadow_effect(self.modes_button)
-            ThemeManager.apply_shadow_effect(self.themes_button)
-            ThemeManager.apply_shadow_effect(self.extensions_button)
-            ThemeManager.apply_shadow_effect(self.file_label)
+            # Apply shadow effects to all editors
+            editors = [self.text_edit] + list(self.mode_editors.values())
+            apply_shadow_to_components(editors)
+            
+            # Apply shadow effects to all buttons and labels
+            ui_elements = menu_buttons + [self.file_label]
+            apply_shadow_to_components(ui_elements)
             
         except Exception as e:
             self._show_error(f"Failed to update UI elements: {str(e)}", e)
