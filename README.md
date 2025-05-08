@@ -18,12 +18,12 @@
 
 ## ✨ Features
 
-- 🎨 **Beautiful Interface** — Clean, modern UI with smooth animations
-- 🌙 **Dark/Light Mode** — Automatically adapts to system theme
-- 🧩 **Modular Design** — Easily create custom modes, themes, and extensions
-- 💾 **Auto Recovery** — Automatic backup of unsaved files
-- 🔄 **Easy Extension** — Simple API for creating plugins
-- 🪟 **Frameless Design** — Perfect for tiling window managers like Hyprland
+- 🎨 Simple sleek UI with easily customizable theme system
+- 🌙 Autodetects if you're in Dark Mode and changes to match
+- 🧩 Modular system allowing for easy user modification of almost all elements
+- 💾 Automagically saves a backup for unsaved files on program close
+- 🔄 Easy-to-read scripting for custom extensions
+- 🪟 Made with frameless WMs like Hyprland in mind
 
 ## 📦 Installation
 
@@ -69,15 +69,15 @@ chmod +x src/main.py
 |           | Refresh Themes | <kbd>Ctrl</kbd> + <kbd>T</kbd> |
 |           | Refresh Extensions | <kbd>Ctrl</kbd> + <kbd>E</kbd> |
 
-## 🧩 Extension System
+## 🧩 Mods
 
-HyprText features a powerful extension system allowing you to:
+HyprText was built with a focus on modular design. In the mods folder, you can:
 
-- Create custom editing modes
-- Design personalized themes
-- Develop UI extensions
+- Create custom text editing modes for specific environments
+- Easily design your own themes, with support for transparency and glow effects
+- Make extensions that modify main app functionality without overriding any main code
 
-### Creating a Theme
+### Themeing Quickstart
 
 Create a new Python file in `mods/themes/` with the following structure:
 
@@ -111,10 +111,6 @@ Contributions are welcome! Feel free to:
 - Report bugs
 - Suggest features
 - Submit pull requests
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
