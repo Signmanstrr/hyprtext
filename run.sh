@@ -21,4 +21,5 @@ fi
 
 # Run the application
 echo "Starting HyprText..."
-python src/main.py 
+nohup python src/main.py 
+echo "Program started! You can safely close this terminal if you don't want to debug."
