@@ -157,7 +157,35 @@ class FileManager:
             dialog = QFileDialog(parent, 'Open File')
             dialog.setOption(QFileDialog.Option.DontUseNativeDialog)
             dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
-            dialog.setNameFilter('Text Files (*.txt);;All Files (*)')
+            
+            # Add support for many common text file formats
+            dialog.setNameFilter(
+                'All Supported Files (*.txt *.py *.js *.html *.css *.md *.json *.xml *.yaml *.yml *.ini *.conf *.cfg *.toml *.sh *.bash *.hyr *.c *.cpp *.h *.hpp *.java *.kt *.rs *.go *.rb *.php *.pl *.lua *.sql *.tex);;\
+                Text Files (*.txt);;\
+                Python Files (*.py);;\
+                JavaScript Files (*.js);;\
+                HTML Files (*.html *.htm);;\
+                CSS Files (*.css);;\
+                Markdown Files (*.md *.markdown);;\
+                JSON Files (*.json);;\
+                XML Files (*.xml);;\
+                YAML Files (*.yaml *.yml);;\
+                Config Files (*.ini *.conf *.cfg *.toml);;\
+                Shell Scripts (*.sh *.bash);;\
+                HyprText Files (*.hyr);;\
+                C/C++ Files (*.c *.cpp *.h *.hpp);;\
+                Java Files (*.java);;\
+                Kotlin Files (*.kt);;\
+                Rust Files (*.rs);;\
+                Go Files (*.go);;\
+                Ruby Files (*.rb);;\
+                PHP Files (*.php);;\
+                Perl Files (*.pl);;\
+                Lua Files (*.lua);;\
+                SQL Files (*.sql);;\
+                LaTeX Files (*.tex);;\
+                All Files (*)'
+            )
             
             # Apply themed stylesheet
             dialog.setStyleSheet(FileManager._get_themed_dialog_stylesheet())
@@ -191,7 +219,35 @@ class FileManager:
             dialog = QFileDialog(parent, 'Save File')
             dialog.setOption(QFileDialog.Option.DontUseNativeDialog)
             dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
-            dialog.setNameFilter('Text Files (*.txt);;All Files (*)')
+            
+            # Add support for many common text file formats
+            dialog.setNameFilter(
+                'All Supported Files (*.txt *.py *.js *.html *.css *.md *.json *.xml *.yaml *.yml *.ini *.conf *.cfg *.toml *.sh *.bash *.hyr *.c *.cpp *.h *.hpp *.java *.kt *.rs *.go *.rb *.php *.pl *.lua *.sql *.tex);;\
+                Text Files (*.txt);;\
+                Python Files (*.py);;\
+                JavaScript Files (*.js);;\
+                HTML Files (*.html *.htm);;\
+                CSS Files (*.css);;\
+                Markdown Files (*.md *.markdown);;\
+                JSON Files (*.json);;\
+                XML Files (*.xml);;\
+                YAML Files (*.yaml *.yml);;\
+                Config Files (*.ini *.conf *.cfg *.toml);;\
+                Shell Scripts (*.sh *.bash);;\
+                HyprText Files (*.hyr);;\
+                C/C++ Files (*.c *.cpp *.h *.hpp);;\
+                Java Files (*.java);;\
+                Kotlin Files (*.kt);;\
+                Rust Files (*.rs);;\
+                Go Files (*.go);;\
+                Ruby Files (*.rb);;\
+                PHP Files (*.php);;\
+                Perl Files (*.pl);;\
+                Lua Files (*.lua);;\
+                SQL Files (*.sql);;\
+                LaTeX Files (*.tex);;\
+                All Files (*)'
+            )
             
             # Apply themed stylesheet
             dialog.setStyleSheet(FileManager._get_themed_dialog_stylesheet())
@@ -222,8 +278,30 @@ class FileManager:
     def read_file(file_path):
         """Read content from a file and return it as a string"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return f.read()
+            # Try UTF-8 first (most common for text files)
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            except UnicodeDecodeError:
+                # If UTF-8 fails, try with other common encodings
+                for encoding in ['latin-1', 'cp1252', 'utf-16', 'utf-32']:
+                    try:
+                        with open(file_path, 'r', encoding=encoding) as f:
+                            return f.read()
+                    except UnicodeDecodeError:
+                        continue
+                
+                # If all text encodings fail, try binary mode as last resort
+                with open(file_path, 'rb') as f:
+                    binary_content = f.read()
+                    # Check if it's likely a text file with unknown encoding
+                    if b'\x00' not in binary_content[:1024]:  # No null bytes in first 1KB
+                        return binary_content.decode('latin-1', errors='replace')
+                    else:
+                        raise Exception(f"The file appears to be binary and cannot be opened in a text editor")
+                        
+        except IOError as e:
+            raise Exception(f"Error reading file {file_path}: {str(e)}")
         except Exception as e:
             raise Exception(f"Error reading file {file_path}: {str(e)}")
     
@@ -231,7 +309,16 @@ class FileManager:
     def write_file(file_path, content):
         """Write content to a file"""
         try:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            # Determine encoding based on file extension
+            _, extension = os.path.splitext(file_path)
+            
+            # Default to UTF-8 for most files
+            encoding = 'utf-8'
+            
+            # Use platform-specific line endings
+            content = content.replace('\r\n', '\n').replace('\r', '\n')
+            
+            with open(file_path, 'w', encoding=encoding, newline='') as f:
                 f.write(content)
         except Exception as e:
             raise Exception(f"Error writing to file {file_path}: {str(e)}")

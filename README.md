@@ -24,6 +24,7 @@
 - 💾 **Auto Recovery** — Automatic backup of unsaved files
 - 🔄 **Easy Extension** — Simple API for creating plugins
 - 🪟 **Frameless Design** — Perfect for tiling window managers like Hyprland
+- 📄 **Multiple File Formats** — Support for over 20 file types including programming languages, markup, and config files
 
 ## 📦 Installation
 
@@ -69,15 +70,30 @@ chmod +x src/main.py
 |           | Refresh Themes | <kbd>Ctrl</kbd> + <kbd>T</kbd> |
 |           | Refresh Extensions | <kbd>Ctrl</kbd> + <kbd>E</kbd> |
 
-## 🧩 Extension System
+### Supported File Formats
 
-HyprText features a powerful extension system allowing you to:
+HyprText supports a wide range of file formats, including:
 
-- Create custom editing modes
-- Design personalized themes
-- Develop UI extensions
+| Category | File Extensions |
+|----------|----------------|
+| **Plain Text** | `.txt` |
+| **Programming** | `.py`, `.js`, `.html`, `.css`, `.c`, `.cpp`, `.h`, `.hpp`, `.java`, `.kt`, `.rs`, `.go`, `.rb`, `.php`, `.pl`, `.lua` |
+| **Markup & Data** | `.md`, `.json`, `.xml`, `.yaml`, `.yml` |
+| **Configuration** | `.ini`, `.conf`, `.cfg`, `.toml` |
+| **Shell Scripts** | `.sh`, `.bash` |
+| **Other** | `.sql`, `.tex`, `.hyr` (HyprText custom format) |
 
-### Creating a Theme
+All files are opened with UTF-8 encoding by default, with fallback to other common encodings if needed.
+
+## 🧩 Mods
+
+HyprText was built with a focus on modular design. In the mods folder, you can:
+
+- Create custom text editing modes for specific environments
+- Easily design your own themes, with support for transparency and glow effects
+- Make extensions that modify main app functionality without overriding any main code
+
+### Themeing Quickstart
 
 Create a new Python file in `mods/themes/` with the following structure:
 
@@ -111,10 +127,6 @@ Contributions are welcome! Feel free to:
 - Report bugs
 - Suggest features
 - Submit pull requests
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
