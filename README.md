@@ -8,6 +8,7 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 **A sleek, modular text editor designed with Hyprland tiling windows in mind.**
+
 *A simple project I made with major help from Cursor AI to give the whole "vibe coding" shit a try. Definitely doesn't work the best. Personal experiment, basically.*
 
 <p align="center">
