@@ -1,9 +1,154 @@
 import os
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
-from theme_manager import DARK_BG, LIGHT_BG, DARK_TEXT, LIGHT_TEXT, ThemeManager
+from theme_manager import ThemeManager
 
 class FileManager:
     """Handles file operations such as open, save, and new files"""
+    
+    @staticmethod
+    def _get_themed_dialog_stylesheet():
+        """Generate a stylesheet for file dialogs based on the current theme"""
+        # Get current theme colors
+        theme_module = ThemeManager._get_theme_module()
+        is_dark = ThemeManager.is_dark_mode()
+        
+        # Get the theme's colors
+        if is_dark:
+            theme_colors = getattr(theme_module, 'DARK_MODE', {})
+        else:
+            theme_colors = getattr(theme_module, 'LIGHT_MODE', {})
+            
+        # Get specific colors from the theme
+        bg_color = theme_colors.get("background")
+        menu_bg = theme_colors.get("menu_bg")
+        text_color = theme_colors.get("text")
+        accent_color = theme_colors.get("accent")
+        hover_color = theme_colors.get("menu_hover")
+        active_color = theme_colors.get("menu_active")
+        
+        # Generate a stylesheet that matches the theme aesthetics
+        return f"""
+            QFileDialog {{
+                background-color: {menu_bg};
+                color: {text_color};
+                border: 1px solid {accent_color};
+                border-radius: 8px;
+            }}
+            QDialog, QFileDialog QWidget {{
+                background-color: {menu_bg};
+                color: {text_color};
+            }}
+            QListView, QTreeView {{
+                background-color: {bg_color};
+                color: {text_color};
+                font-size: 12pt;
+                border: 1px solid {accent_color};
+                border-radius: 6px;
+                padding: 4px;
+                selection-background-color: {hover_color};
+                selection-color: {accent_color};
+            }}
+            QHeaderView::section {{
+                background-color: {menu_bg};
+                color: {text_color};
+                border: 1px solid {accent_color};
+                padding: 4px;
+            }}
+            QPushButton {{
+                background-color: {menu_bg};
+                color: {text_color};
+                border: 1px solid {accent_color};
+                border-radius: 6px;
+                padding: 6px 12px;
+                min-width: 80px;
+            }}
+            QPushButton:hover {{
+                background-color: {hover_color};
+                color: {accent_color};
+                border: 1px solid {accent_color};
+            }}
+            QPushButton:pressed {{
+                background-color: {active_color};
+            }}
+            QLineEdit {{
+                background-color: {bg_color};
+                color: {text_color};
+                border: 1px solid {accent_color};
+                border-radius: 6px;
+                padding: 5px;
+                font-size: 12pt;
+            }}
+            QLineEdit:focus {{
+                border: 2px solid {accent_color};
+            }}
+            QComboBox {{
+                background-color: {bg_color};
+                color: {text_color};
+                border: 1px solid {accent_color};
+                border-radius: 6px;
+                padding: 5px;
+                font-size: 12pt;
+            }}
+            QComboBox:hover {{
+                background-color: {hover_color};
+                color: {accent_color};
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 24px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {menu_bg};
+                color: {text_color};
+                border: 1px solid {accent_color};
+                selection-background-color: {hover_color};
+                selection-color: {accent_color};
+            }}
+            QToolButton {{
+                background-color: {menu_bg};
+                color: {text_color};
+                border: 1px solid {accent_color};
+                border-radius: 4px;
+            }}
+            QToolButton:hover {{
+                background-color: {hover_color};
+                color: {accent_color};
+            }}
+            QToolButton:pressed {{
+                background-color: {active_color};
+            }}
+            QLabel {{
+                color: {text_color};
+            }}
+            QScrollBar:vertical {{
+                border: none;
+                background-color: transparent;
+                width: 12px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {accent_color};
+                border-radius: 6px;
+                min-height: 20px;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0px;
+            }}
+            QScrollBar:horizontal {{
+                border: none;
+                background-color: transparent;
+                height: 12px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:horizontal {{
+                background-color: {accent_color};
+                border-radius: 6px;
+                min-width: 20px;
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                width: 0px;
+            }}
+        """
     
     @staticmethod
     def get_open_file_path(parent):
@@ -14,49 +159,22 @@ class FileManager:
             dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
             dialog.setNameFilter('Text Files (*.txt);;All Files (*)')
             
-            # Set dialog styling to match app theme
-            is_dark = ThemeManager.is_dark_mode()
-            bg_color = DARK_BG if is_dark else LIGHT_BG
-            text_color = DARK_TEXT if is_dark else LIGHT_TEXT
+            # Apply themed stylesheet
+            dialog.setStyleSheet(FileManager._get_themed_dialog_stylesheet())
             
-            dialog.setStyleSheet(f"""
-                QFileDialog {{
-                    background-color: {bg_color};
-                    color: {text_color};
-                }}
-                QListView, QTreeView {{
-                    background-color: {bg_color};
-                    color: {text_color};
-                    font-size: 12pt;
-                }}
-                QPushButton {{
-                    background-color: rgba(100, 255, 218, 0.2);
-                    color: {text_color};
-                    border: 1px solid #64ffda;
-                    border-radius: 4px;
-                    padding: 5px 15px;
-                    font-size: 12pt;
-                }}
-                QPushButton:hover {{
-                    background-color: rgba(100, 255, 218, 0.4);
-                }}
-                QLineEdit {{
-                    background-color: {bg_color};
-                    color: {text_color};
-                    border: 1px solid #64ffda;
-                    border-radius: 4px;
-                    padding: 5px;
-                    font-size: 12pt;
-                }}
-                QComboBox {{
-                    background-color: {bg_color};
-                    color: {text_color};
-                    border: 1px solid #64ffda;
-                    border-radius: 4px;
-                    padding: 5px;
-                    font-size: 12pt;
-                }}
-            """)
+            # Set a reasonable minimum size
+            dialog.setMinimumSize(700, 500)
+            
+            # Center dialog relative to parent
+            if parent:
+                dialog_size = dialog.sizeHint()
+                parent_center = parent.geometry().center()
+                dialog.setGeometry(
+                    parent_center.x() - dialog_size.width() // 2,
+                    parent_center.y() - dialog_size.height() // 2,
+                    dialog_size.width(),
+                    dialog_size.height()
+                )
             
             if dialog.exec() == 1:  # QDialog.Accepted
                 filename = dialog.selectedFiles()[0]
@@ -75,49 +193,22 @@ class FileManager:
             dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
             dialog.setNameFilter('Text Files (*.txt);;All Files (*)')
             
-            # Set dialog styling to match app theme
-            is_dark = ThemeManager.is_dark_mode()
-            bg_color = DARK_BG if is_dark else LIGHT_BG
-            text_color = DARK_TEXT if is_dark else LIGHT_TEXT
+            # Apply themed stylesheet
+            dialog.setStyleSheet(FileManager._get_themed_dialog_stylesheet())
             
-            dialog.setStyleSheet(f"""
-                QFileDialog {{
-                    background-color: {bg_color};
-                    color: {text_color};
-                }}
-                QListView, QTreeView {{
-                    background-color: {bg_color};
-                    color: {text_color};
-                    font-size: 12pt;
-                }}
-                QPushButton {{
-                    background-color: rgba(100, 255, 218, 0.2);
-                    color: {text_color};
-                    border: 1px solid #64ffda;
-                    border-radius: 4px;
-                    padding: 5px 15px;
-                    font-size: 12pt;
-                }}
-                QPushButton:hover {{
-                    background-color: rgba(100, 255, 218, 0.4);
-                }}
-                QLineEdit {{
-                    background-color: {bg_color};
-                    color: {text_color};
-                    border: 1px solid #64ffda;
-                    border-radius: 4px;
-                    padding: 5px;
-                    font-size: 12pt;
-                }}
-                QComboBox {{
-                    background-color: {bg_color};
-                    color: {text_color};
-                    border: 1px solid #64ffda;
-                    border-radius: 4px;
-                    padding: 5px;
-                    font-size: 12pt;
-                }}
-            """)
+            # Set a reasonable minimum size
+            dialog.setMinimumSize(700, 500)
+            
+            # Center dialog relative to parent
+            if parent:
+                dialog_size = dialog.sizeHint()
+                parent_center = parent.geometry().center()
+                dialog.setGeometry(
+                    parent_center.x() - dialog_size.width() // 2,
+                    parent_center.y() - dialog_size.height() // 2,
+                    dialog_size.width(),
+                    dialog_size.height()
+                )
             
             if dialog.exec() == 1:  # QDialog.Accepted
                 filename = dialog.selectedFiles()[0]
