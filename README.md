@@ -46,11 +46,11 @@ cd hyprtext
 # Install dependencies
 pip install -r requirements.txt
 
-# Make the script executable
-chmod +x src/main.py
+# Make the bash executable
+chmod +x ./run.sh
 
 # Run HyprText
-./src/main.py
+./run.sh
 ```
 
 ## 🎮 Usage
