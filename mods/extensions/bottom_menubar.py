@@ -17,10 +17,11 @@ _original_layout = None
 _app_instance = None
 _top_bar = None
 _is_at_bottom = False
+_original_show_menu = None  # Store the original _showMenu method
 
 def initialize(app=None):
     """Initialize the extension when activated"""
-    global _app_instance, _top_bar, _is_at_bottom
+    global _app_instance, _top_bar, _is_at_bottom, _original_show_menu
     
     if app:
         _app_instance = app
@@ -31,12 +32,16 @@ def initialize(app=None):
             if main_layout.count() > 0:
                 _top_bar = main_layout.itemAt(0).widget()
         
+        # Store the original _showMenu method
+        if not _original_show_menu:
+            _original_show_menu = app._showMenu
+            
         _is_at_bottom = False
         print("Bottom Menubar extension initialized")
 
 def cleanup(app=None):
     """Clean up when the extension is deactivated"""
-    global _app_instance, _top_bar, _is_at_bottom
+    global _app_instance, _top_bar, _is_at_bottom, _original_show_menu
     
     if app and _top_bar and _is_at_bottom:
         # Restore original layout
@@ -55,14 +60,30 @@ def cleanup(app=None):
         except Exception as e:
             print(f"Error restoring layout: {str(e)}")
     
+    # Restore the original _showMenu method
+    if app and _original_show_menu:
+        app._showMenu = _original_show_menu
+        print("Restored original menu positioning")
+    
     # Reset stored variables
     _app_instance = None
+    _original_show_menu = None
     
     print("Bottom Menubar extension cleaned up")
 
+def _bottom_show_menu(app, button, menu):
+    """Custom menu display function for bottom menubar"""
+    from PyQt6.QtCore import QPoint
+    
+    # Position the menu above the button instead of below
+    pos = button.mapToGlobal(QPoint(0, -menu.sizeHint().height()))
+    menu.popup(pos)
+    # Connect aboutToHide signal to reset button state
+    menu.aboutToHide.connect(lambda: app.resetButtonState(button))
+
 def modify_layout(app):
     """Move the menubar from top to bottom"""
-    global _app_instance, _top_bar, _is_at_bottom
+    global _app_instance, _top_bar, _is_at_bottom, _original_show_menu
     
     if not app:
         return
@@ -83,8 +104,16 @@ def modify_layout(app):
         # Add it to the bottom
         main_layout.addWidget(_top_bar)
         
+        # Save the original _showMenu method if not already saved
+        if not _original_show_menu:
+            _original_show_menu = app._showMenu
+        
+        # Override the _showMenu method to position menus above the buttons
+        app._showMenu = lambda button, menu: _bottom_show_menu(app, button, menu)
+        
         _is_at_bottom = True
         print("Moved menubar to bottom position")
+        print("Modified menu positioning to open above buttons")
         
         return True
     except Exception as e:
